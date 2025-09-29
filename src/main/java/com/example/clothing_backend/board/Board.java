@@ -30,6 +30,10 @@ public class Board {
     private Long userId;
     private int viewCnt;
 
+    private Double latitude;  // 위도
+
+    private Double longitude; // 경도
+
     @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(name = "image")
     private byte[] imageData;

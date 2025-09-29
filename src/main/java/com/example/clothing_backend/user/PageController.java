@@ -222,13 +222,23 @@ public class PageController {
     }
 
     @PostMapping("/write")
-    public String write(@RequestParam String title, @RequestParam String content, @RequestParam(required = false) MultipartFile image, HttpSession session) throws IOException {
+    public String write(@RequestParam String title,
+                        @RequestParam String content,
+                        @RequestParam(required = false) MultipartFile image,
+                        @RequestParam(required = false) Double latitude,
+                        @RequestParam(required = false) Double longitude,
+                        HttpSession session) throws IOException {
+
         User loginUser = (User) session.getAttribute("loginUser");
-        if (loginUser == null) return "redirect:/login.html";
+        if (loginUser == null) {
+            return "redirect:/login.html";
+        }
 
         byte[] imageData = (image != null && !image.isEmpty()) ? image.getBytes() : null;
-        // addBoard는 Long 타입 userId를 사용하므로 그대로 둡니다.
-        boardService.addBoard(loginUser.getNickname(), title, content, loginUser.getUserId(), imageData, null, null);
+
+        // ★★★ BoardService의 메소드와 파라미터 타입, 순서를 정확히 일치시켜 호출합니다.
+        boardService.addBoard(loginUser.getNickname(), title, content, loginUser.getUserId(), imageData, latitude, longitude);
+
         return "redirect:/share";
     }
 

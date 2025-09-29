@@ -31,7 +31,8 @@ public class BoardService {
     }
 
     @Transactional
-    public void addBoard(String nickname, String title, String content, Long userId, byte[] imageData, String reviewText, byte[] reviewImageData) {
+    public void addBoard(String nickname, String title, String content, Long userId,
+                         byte[] imageData, Double latitude, Double longitude) { // VVV 이 부분에 파라미터 추가 VVV
         // 새 게시글 추가
         Board board = new Board();
         board.setNickname(nickname);
@@ -39,8 +40,11 @@ public class BoardService {
         board.setContent(content);
         board.setUserId(userId);
         board.setImageData(imageData);
-        board.setReviewText(reviewText);
-        board.setReviewImage(reviewImageData);
+        board.setLatitude(latitude);
+        board.setLongitude(longitude);
+        board.setRedate(LocalDateTime.now());
+        board.setViewCnt(0);
+
         boardRepository.save(board);
     }
 
@@ -60,7 +64,7 @@ public class BoardService {
 
     @Transactional
     public void deleteBoard(long boardId) {
-        // ID만으로 삭제 (권한 체크 없음 → 관리자용? → 알아봐야 할 듯)
+        // ID만으로 삭제 (권한 체크 없음 → 관리자용)
         boardRepository.deleteById(boardId);
     }
 
