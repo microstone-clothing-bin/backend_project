@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"> <!-- 문자 인코딩 UTF-8 설정 -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/> <!-- IE 호환 모드 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 모바일 대응 뷰포트 설정 -->
+  <title>회원가입 완료</title> <!-- 브라우저 탭 제목 -->
+  <link rel="stylesheet" th:href="@{/css/form.css}"/> <!-- form.css 스타일 시트 적용 -->
+</head>
+<body>
+<div class="form-container" style="text-align: center;"> <!-- 중앙 정렬 컨테이너 시작 -->
+
+  <!-- 환영 메시지 제목 -->
+  <h1>회원가입을 환영합니다!</h1>
+
+  <!-- 안내 문구 -->
+  <p>이제 모든 서비스를 이용하실 수 있습니다.</p>
+
+  <br>
+
+  <!-- 이동 버튼 영역 -->
+  <div class="links">
+    <!-- 로그인 페이지로 이동 -->
+    <a th:href="@{/login.html}" class="btn">로그인 하러 가기</a>
+    <!-- 메인 페이지로 이동 -->
+    <a th:href="@{/}" class="btn">메인 페이지로</a>
+  </div>
+</div> <!-- 중앙 정렬 컨테이너 끝 -->
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시물 상세보기</title>
+
+    <!-- CSS 적용 -->
+    <link rel="stylesheet" th:href="@{/css/board.css}"/>
+</head>
+<body>
+<section class="board-detail">
+    <div class="container">
+        <!-- 게시물 제목 출력 -->
+        <h1 th:text="${board.title}"></h1>
+
+        <!-- 작성자, 조회수, 작성일 정보 표시 -->
+        <div class="info">
+            <span>작성자: <span th:text="${board.nickname}"></span></span> |
+            <span>조회수: <span th:text="${board.viewCnt}"></span></span> |
+            <span>작성일: <span th:text="${#temporals.format(board.redate, 'yyyy-MM-dd HH:mm')}"></span></span>
+        </div>
+
+        <hr>
+
+        <!-- 게시물 이미지 영역: 이미지가 있을 때만 표시 -->
+        <div class="image-area" th:if="${board.imageBase64 != null}">
+            <img th:src="'data:image/jpeg;base64,' + ${board.imageBase64}" style="max-width: 800px;" />
+        </div>
+
+        <!-- 게시물 내용 -->
+        <div class="content-area" th:text="${board.content}"></div>
+
+        <hr>
+
+        <!-- 리뷰 영역: 리뷰 텍스트 또는 이미지가 있을 때만 표시 -->
+        <div class="review-area" th:if="${board.reviewText != null or board.reviewImageBase64 != null}">
+            <h3>리뷰</h3>
+            <!-- 리뷰 텍스트 -->
+            <p th:if="${board.reviewText != null}" th:text="${board.reviewText}"></p>
+            <!-- 리뷰 이미지 -->
+            <div th:if="${board.reviewImageBase64 != null}">
+                <img th:src="'data:image/jpeg;base64,' + ${board.reviewImageBase64}" style="max-width: 800px;" />
+            </div>
+        </div>
+
+        <!-- 버튼 영역 -->
+        <div class="button-area" style="margin-top: 20px;">
+            <!-- 목록보기 버튼 -->
+            <a th:href="@{/share}" class="btn">목록보기</a>
+
+            <!-- 수정/삭제 버튼: 로그인 상태이며 작성자이거나 관리자일 경우에만 표시 -->
+            <span th:if="${loginInfo != null and (loginInfo.nickname == board.nickname or loginInfo.roles.contains('ROLE_ADMIN'))}">
+                <a th:href="@{/updateform(boardId=${board.boardId})}" class="btn">수정하기</a>
+                <a th:href="@{/delete(boardId=${board.boardId})}" class="btn"
+                   onclick="return confirm('정말로 삭제하시겠습니까?');">삭제하기</a>
+            </span>
+        </div>
+    </div>
+</section>
+</body>
+</html>

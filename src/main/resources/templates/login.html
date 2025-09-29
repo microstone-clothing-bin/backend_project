@@ -1,0 +1,161 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko" xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>로그인</title>-->
+<!--    <style>-->
+<!--        /* 전체 레이아웃 */-->
+<!--        body {-->
+<!--            margin: 0;-->
+<!--            font-family: Arial, sans-serif;-->
+<!--            background-color: #f5f6fa;-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            height: 100vh;-->
+<!--        }-->
+
+<!--        /* 로그인 박스 */-->
+<!--        .form-container {-->
+<!--            width: 350px;-->
+<!--            padding: 30px;-->
+<!--            background-color: white;-->
+<!--            border-radius: 10px;-->
+<!--            box-shadow: 0 5px 15px rgba(0,0,0,0.1);-->
+<!--        }-->
+
+<!--        .form-container h1 {-->
+<!--            text-align: center;-->
+<!--            margin-bottom: 20px;-->
+<!--            color: #6c5ce7;-->
+<!--        }-->
+
+<!--        /* 입력 필드 */-->
+<!--        .form-container input[type="text"],-->
+<!--        .form-container input[type="password"] {-->
+<!--            width: 100%;-->
+<!--            padding: 10px;-->
+<!--            margin-top: 5px;-->
+<!--            margin-bottom: 15px;-->
+<!--            border: 1px solid #ddd;-->
+<!--            border-radius: 5px;-->
+<!--            box-sizing: border-box;-->
+<!--        }-->
+
+<!--        /* 로그인 버튼 */-->
+<!--        .form-container button {-->
+<!--            width: 100%;-->
+<!--            padding: 10px;-->
+<!--            background-color: #6c5ce7;-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            border-radius: 5px;-->
+<!--            cursor: pointer;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .form-container button:hover {-->
+<!--            background-color: #341f97;-->
+<!--        }-->
+
+<!--        /* 하단 링크 */-->
+<!--        .links {-->
+<!--            text-align: center;-->
+<!--            margin-top: 15px;-->
+<!--        }-->
+
+<!--        .links a {-->
+<!--            margin: 0 5px;-->
+<!--            text-decoration: none;-->
+<!--            color: #6c5ce7;-->
+<!--        }-->
+
+<!--        .links a:hover {-->
+<!--            text-decoration: underline;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--<div class="form-container">-->
+<!--    <h1>로그인</h1>-->
+
+<!--    <form th:action="@{/login}" method="post">-->
+<!--        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />-->
+
+<!--        <div>-->
+<!--            <label for="id">아이디:</label>-->
+<!--            <input type="text" id="id" name="id" required />-->
+<!--        </div>-->
+
+<!--        <div>-->
+<!--            <label for="password">비밀번호:</label>-->
+<!--            <input type="password" id="password" name="password" required />-->
+<!--        </div>-->
+
+<!--        <button type="submit">로그인</button>-->
+<!--    </form>-->
+
+<!--    <div class="links">-->
+<!--        <a th:href="@{/findIdForm}">아이디 찾기</a> |-->
+<!--        <a th:href="@{/findPwForm}">비밀번호 찾기</a> |-->
+<!--        <a th:href="@{/register.html}">회원가입</a>-->
+<!--    </div>-->
+
+<!--    <script th:if="${param.error}" th:inline="javascript">-->
+<!--        alert("아이디 또는 비밀번호가 일치하지 않습니다.");-->
+<!--    </script>-->
+
+<!--    <script th:if="${param.reset_success}" th:inline="javascript">-->
+<!--        alert("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");-->
+<!--    </script>-->
+<!--</div>-->
+<!--</body>-->
+<!--</html>-->
+
+
+
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인</title>
+    <link rel="stylesheet" th:href="@{/css/form.css}"/>
+</head>
+<body>
+<div class="form-container">
+    <h1>로그인</h1>
+
+    <form th:action="@{/login}" method="post">
+
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+        <div>
+            <label for="id">아이디:</label>
+            <input type="text" id="id" name="id" required />
+        </div>
+
+        <div>
+            <label for="password">비밀번호:</label>
+            <input type="password" id="password" name="password" required />
+        </div>
+        <br/>
+
+        <button type="submit">로그인</button>
+    </form>
+
+    <div class="links">
+        <a th:href="@{/findIdForm}">아이디 찾기</a> |
+        <a th:href="@{/findPwForm}">비밀번호 찾기</a> |
+        <a th:href="@{/register.html}">회원가입</a>
+    </div>
+
+    <script th:if="${param.error}" th:inline="javascript">
+        alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+    </script>
+
+    <script th:if="${param.reset_success}" th:inline="javascript">
+        alert("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");
+    </script>
+</div>
+</body>
+</html>

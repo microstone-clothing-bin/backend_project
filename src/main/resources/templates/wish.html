@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>내 즐겨찾기 목록</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .content-container { width: 80%; margin: 20px auto; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #6c5ce7; padding-bottom: 10px; margin-bottom: 20px; color: #333; }
+        .wish-item { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; background-color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .wish-item strong { color: #6c5ce7; }
+        .remove-btn { background-color: #ff6b6b; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<div class="content-container">
+    <h2>내 즐겨찾기 의류수거함 목록</h2>
+
+    <div th:if="${wishes.isEmpty()}">
+        <p>아직 즐겨찾기에 등록된 수거함이 없습니다.</p>
+        <p><a th:href="@{/}">지도로 돌아가서 찜해보세요!</a></p>
+    </div>
+
+    <div th:each="bin : ${wishes}" class="wish-item">
+        <div>
+            <strong>[[${bin.roadAddress}]]</strong>
+            <span th:if="${bin.roadAddress == null}">[[${bin.landLotAddress}]]</span>
+            <p style="font-size: 0.9em; color: #666;">위도: [[${bin.latitude}]] / 경도: [[${bin.longitude}]]</p>
+        </div>
+        <button class="remove-btn" th:data-bin-id="${bin.id}" onclick="removeWish(this.getAttribute('data-bin-id'))">
+            찜 해제
+        </button>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    // CSRF 토큰 정보
+    const csrfToken = /*[[${_csrf.token}]]*/ '';
+    const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+
+    // 찜 해제 함수 (map.html에서 사용한 API를 재사용)
+    function removeWish(binId) {
+        if (!confirm('정말로 즐겨찾기를 해제하시겠습니까?')) {
+            return;
+        }
+
+        fetch(`/api/wish/remove/${binId}`, {
+            method: 'DELETE', // DELETE 메소드 사용
+            headers: {
+                [csrfHeader]: csrfToken
+            }
+        })
+            .then(res => {
+                if (res.status === 401) {
+                    alert('로그인이 만료되었거나 권한이 없습니다.');
+                    window.location.href = '/login.html';
+                    return Promise.reject('로그인 필요');
+                }
+                if (!res.ok) {
+                    return res.text().then(text => Promise.reject(text || '해제 실패'));
+                }
+                return res.text();
+            })
+            .then(() => {
+                alert('즐겨찾기가 해제되었습니다.');
+                // 성공 시 페이지를 새로고침하여 목록 갱신
+                window.location.reload();
+            })
+            .catch(err => {
+                if (err !== '로그인 필요') {
+                    console.error("Remove Wish Error:", err);
+                    alert('해제 중 오류가 발생했습니다.');
+                }
+            });
+    }
+</script>
+</body>
+</html>

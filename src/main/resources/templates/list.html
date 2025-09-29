@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>게시판 목록보기</title>
+    <link rel="stylesheet" th:href="@{/css/board.css}"/>
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<section class="board">
+    <div class="page-title">
+        <div class="container">
+            <h3>게시판 목록보기</h3>
+        </div>
+    </div>
+
+    <div id="board-list">
+        <div class="container">
+            <table class="board-table">
+                <thead>
+                <tr>
+                    <th class="th-num">번호</th>
+                    <th class="th-title">제목</th>
+                    <th class="th-viewcnt">조회수</th>
+                    <th class="th-name">작성자</th>
+                    <th class="th-date">등록일</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${paging.isEmpty()}">
+                    <td colspan="5">게시글이 없습니다.</td>
+                </tr>
+                <tr th:each="board : ${paging.content}">
+                    <td th:text="${board.boardId}"></td> <td>
+                    <a th:href="@{/board(boardId=${board.boardId})}" th:text="${board.title}"></a>
+                </td>
+                    <td th:text="${board.viewCnt}"></td> <td th:text="${board.nickname}"></td> <td th:text="${#temporals.format(board.redate, 'yyyy-MM-dd')}"></td> </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="container" style="text-align: right; margin-top: 10px;">
+            <a href="javascript:void(0)" onclick="checkLoginAndRedirect()" class="write-button">글쓰기</a>
+        </div>
+    </div>
+
+    <div class="pagination" th:if="${!paging.isEmpty()}" style="text-align: center; margin-top: 20px;">
+        <a th:href="@{/share(page=0)}" th:unless="${paging.first}">처음</a>
+        <a th:href="@{/share(page=${paging.number - 1})}" th:if="${paging.hasPrevious()}">이전</a>
+
+        <span th:each="pageNumber : ${#numbers.sequence(0, paging.totalPages - 1)}">
+                <a th:href="@{/share(page=${pageNumber})}"
+                   th:text="${pageNumber + 1}"
+                   th:classappend="${pageNumber == paging.number} ? 'active' : ''"></a>
+            </span>
+
+        <a th:href="@{/share(page=${paging.number + 1})}" th:if="${paging.hasNext()}">다음</a>
+        <a th:href="@{/share(page=${paging.totalPages - 1})}" th:unless="${paging.last}">끝</a>
+    </div>
+</section>
+
+<!-- 자바스크립트 로직 -->
+<!-- 이제 로그인 여부와 관계없이 항상 스크립트가 로드됨 -->
+<script th:inline="javascript">
+    // Spring Security 인증 상태를 확인
+    // loginInfo 세션이 null이거나, Spring Security principal이 'anonymousUser'가 아닐 경우 true
+    const isUserAuthenticated =
+        /*[[${session.loginInfo != null}]]*/ false ||
+        /*[[${#authentication.principal != 'anonymousUser'}]]*/ false;
+
+    function checkLoginAndRedirect() {
+        if (!isUserAuthenticated) {
+            // 로그인 안 되어 있을 때 경고 및 리다이렉트
+            alert("게시물을 작성하려면 로그인이 필요합니다.");
+            window.location.href = "/login"; // 로그인 URL로 변경
+        } else {
+            // 로그인 되어 있다면 글쓰기 페이지로 이동
+            window.location.href = "/writeform"; // 글쓰기 URL로 변경
+        }
+    }
+</script>
+</body>
+</html>

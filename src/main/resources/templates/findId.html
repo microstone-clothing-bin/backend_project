@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>아이디 찾기</title>
+</head>
+<body>
+<h1>아이디 찾기</h1>
+
+<!-- 아이디 찾기 폼 -->
+<form th:action="@{/findId}" method="post">
+    <!-- 닉네임 입력 -->
+    <div>
+        <label for="nickname">닉네임:</label>
+        <input type="text" id="nickname" name="nickname" required>
+    </div>
+
+    <!-- 이메일 입력 -->
+    <div>
+        <label for="email">이메일:</label>
+        <input type="email" id="email" name="email" required>
+    </div>
+
+    <br>
+    <!-- 제출 버튼 -->
+    <input type="submit" value="아이디 찾기">
+</form>
+
+<!-- 로그인 페이지로 돌아가기 링크 -->
+<div>
+    <a th:href="@{/login.html}">로그인 페이지로 돌아가기</a>
+</div>
+
+<!--
+    메시지 표시 스크립트
+    서버에서 'message' 변수가 넘어오면 alert로 띄우고,
+    이후 로그인 페이지로 이동
+-->
+
+<script th:if="${message != null}" th:inline="javascript">
+
+    var message = /*[[${message}]]*/ 'default message'; // 서버에서 전달된 메시지
+    alert(message); // 메시지 팝업
+    window.location.href = '/login.html'; // 팝업 후 로그인 페이지로 이동
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${board.title}"></title>
+    <link rel="stylesheet" th:href="@{/css/board.css}"/>
+
+    <style>
+        .content-text {
+            white-space: pre-wrap; /* 엔터(줄바꿈) */
+            word-break: break-all; /* 긴 영단어가 있을 경우 강제로 줄바꿈 */
+        }
+    </style>
+</head>
+<body>
+<!-- 모든 페이지 공통 헤더 -->
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<div class="container board-detail">
+    <h1 th:text="${board.title}"></h1>
+    <div class="info">
+        <span>입력: <span th:text="${#temporals.format(board.redate, 'yyyy-MM-dd HH:mm')}"></span></span>
+
+        <span th:if="${board.modifiedAt != null}">
+        | <span>수정: <span th:text="${#temporals.format(board.modifiedAt, 'yyyy-MM-dd HH:mm')}"></span></span>
+    </span>
+    </div>
+    <hr>
+    <div class="content-area">
+        <!-- 게시물 이미지 -->
+        <div class="image-area" th:if="${board.imageBase64 != null}">
+            <img th:src="'data:image/jpeg;base64,' + ${board.imageBase64}" style="max-width: 100%;" />
+        </div>
+        <!-- 게시물 내용 -->
+        <div class="content-text" th:text="${board.content}"></div>
+    </div>
+    <hr>
+    <div class="button-area">
+        <a th:href="@{/share}" class="btn">목록보기</a>
+        <!-- 본인 글이거나 관리자일 경우에만 수정/삭제 버튼 노출 -->
+        <span th:if="${#authorization.expression('isAuthenticated() and (principal.nickname == #vars.board.nickname or hasRole(''ROLE_ADMIN''))')}">
+                <a th:href="@{/updateform(boardId=${board.boardId})}" class="btn">수정하기</a>
+                <a th:href="@{/delete(boardId=${board.boardId})}" class="btn btn-danger" onclick="return confirm('정말로 삭제하시겠습니까?');">삭제하기</a>
+            </span>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입</title>
+    <link rel="stylesheet" th:href="@{/css/form.css}"/>
+</head>
+<body>
+<div class="form-container">
+    <h1>회원가입</h1>
+
+    <form th:action="@{/userReg}" method="post" onsubmit="return validateForm()">
+
+        <!-- 아이디 중복 -->
+        <div>
+            <label for="id">아이디:</label>
+            <input type="text" id="id" name="id" required />
+            <button type="button" onclick="checkDuplicate('id')">중복확인</button>
+        </div>
+
+        <!-- 비밀번호 입력 -->
+        <div>
+            <label for="password">비밀번호:</label>
+            <input type="password" id="password" name="password" required />
+        </div>
+
+        <!-- 비밀번호 확인 -->
+        <div>
+            <label for="passwordCheck">비밀번호 확인:</label>
+            <input type="password" id="passwordCheck" name="passwordCheck" required />
+        </div>
+
+        <!-- 닉네임 중복 -->
+        <div>
+            <label for="nickname">닉네임:</label>
+            <input type="text" id="nickname" name="nickname" required />
+            <button type="button" onclick="checkDuplicate('nickname')">중복확인</button>
+        </div>
+
+        <!-- 이메일 중복 -->
+        <div>
+            <label for="email">이메일:</label>
+            <input type="email" id="email" name="email" required />
+            <button type="button" onclick="checkDuplicate('email')">중복확인</button>
+        </div>
+
+        <br>
+        <button type="submit">회원가입</button>
+    </form>
+
+    <div class="links">
+        <a th:href="@{/login.html}">이미 계정이 있으신가요? 로그인</a>
+    </div>
+</div>
+
+<script>
+    let idChecked = false;
+    let nicknameChecked = false;
+    let emailChecked = false;
+
+    // 폼 유효성 검사 함수
+    function validateForm() {
+        let id = document.getElementById('id').value;
+        let pw = document.getElementById('password').value;
+        let pwCheck = document.getElementById('passwordCheck').value;
+        let email = document.getElementById('email').value;
+
+        let koreanRegex = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
+        if (koreanRegex.test(id) || koreanRegex.test(email) || koreanRegex.test(pw)) {
+            alert("아이디, 이메일, 비밀번호에는 한글을 사용할 수 없습니다.");
+            return false;
+        }
+
+        // [수정] 모든 중복확인 여부 체크
+        if (!idChecked) {
+            alert("아이디 중복확인을 해주세요.");
+            return false;
+        }
+        if (!nicknameChecked) {
+            alert("닉네임 중복확인을 해주세요.");
+            return false;
+        }
+        if (!emailChecked) {
+            alert("이메일 중복확인을 해주세요.");
+            return false;
+        }
+
+        if (pw !== pwCheck) {
+            alert("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+            return false;
+        }
+
+        if (!email.includes("@")) {
+            alert("올바른 이메일 형식을 입력하세요.");
+            return false;
+        }
+
+        let pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,20}$/;
+        if (!pwRegex.test(pw)) {
+            alert("비밀번호는 8~20자리이며, 영문 대소문자, 숫자, 특수문자를 모두 포함해야 합니다.");
+            return false;
+        }
+
+        return true;
+    }
+
+    // 중복확인 함수를 새로운 API 주소와 JSON 응답 반환
+    function checkDuplicate(type) {
+        let value = document.getElementById(type).value;
+        if (!value) {
+            let typeName = "";
+            if(type === 'id') typeName = '아이디';
+            else if (type === 'nickname') typeName = '닉네임';
+            else typeName = '이메일';
+            alert(typeName + "을(를) 입력해주세요.");
+            return;
+        }
+
+        // type에 따라 API 경로를 동적으로 설정
+        let apiUrl = `/api/user/check-${type}?${type}=${value}`;
+
+        fetch(apiUrl)
+            .then(response => response.json()) // 응답을 JSON으로 파싱
+            .then(data => {
+                let typeName = "";
+                if(type === 'id') typeName = '아이디';
+                else if (type === 'nickname') typeName = '닉네임';
+                else typeName = '이메일';
+
+                if (data.isDuplicate) { // JSON 객체의 isDuplicate 속성 확인
+                    alert("이미 사용 중인 " + typeName + "입니다.");
+                    if (type === "id") idChecked = false;
+                    else if (type === "nickname") nicknameChecked = false;
+                    else emailChecked = false;
+                } else {
+                    alert("사용 가능한 " + typeName + "입니다!");
+                    if (type === "id") idChecked = true;
+                    else if (type === "nickname") nicknameChecked = true;
+                    else emailChecked = true;
+                }
+            })
+            .catch(error => console.error("Error:", error));
+    }
+</script>
+</body>
+</html>
