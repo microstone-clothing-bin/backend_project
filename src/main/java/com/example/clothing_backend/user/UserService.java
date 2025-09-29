@@ -52,6 +52,13 @@ public class UserService {
                 .orElse(null);
     }
 
+    // userId를 사용해 데이터베이스에서 사용자를 찾아 반환
+    public User getUserById(Long userId) {
+        // VVV 수정 VVV: orElse(null) 대신 예외를 발생시켜 일관성을 유지합니다.
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("ID가 " + userId + "인 사용자를 찾을 수 없습니다."));
+    }
+
     // 비밀번호 찾기
     public String findPwByIdAndEmail(String id, String email) {
         return userRepository.findByIdAndEmail(id, email)
@@ -64,7 +71,8 @@ public class UserService {
     public String saveProfileImage(MultipartFile file, String id) {
         User user = getUser(id);
         if (user == null) {
-            throw new RuntimeException("사용자를 찾을 수 없습니다.");
+            // VVV 수정 VVV: RuntimeException -> UserNotFoundException 으로 변경
+            throw new UserNotFoundException("ID가 " + id + "인 사용자를 찾을 수 없습니다.");
         }
         try {
             byte[] bytes = file.getBytes();
@@ -72,6 +80,7 @@ public class UserService {
             userRepository.save(user); // 변경사항 저장
             return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
         } catch (Exception e) {
+            // 이미지 처리 실패는 일반 런타임 예외로 처리
             throw new RuntimeException("프로필 이미지 저장 실패", e);
         }
     }
@@ -91,16 +100,19 @@ public class UserService {
         User user = getUser(id);
         if (user != null) {
             userRepository.delete(user);
+        } else {
+            // VVV 수정 VVV: RuntimeException -> UserNotFoundException 으로 변경
+            throw new UserNotFoundException("ID가 " + id + "인 사용자를 찾을 수 없습니다.");
         }
     }
 
     // 비밀번호 재설정
     @Transactional
     public void updatePassword(String id, String email, String newPassword) {
+        // VVV 수정 VVV: RuntimeException -> UserNotFoundException 으로 변경
         User user = userRepository.findByIdAndEmail(id, email)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new UserNotFoundException("ID 또는 이메일이 일치하는 사용자를 찾을 수 없습니다."));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 }
-

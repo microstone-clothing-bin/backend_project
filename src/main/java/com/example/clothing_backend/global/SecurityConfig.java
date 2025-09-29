@@ -1,5 +1,5 @@
-//// 보안 설정 (건들지 말기)
-//
+// 보안 설정 (건들지 말기)
+
 //package com.example.clothing_backend.global;
 //
 //import com.example.clothing_backend.global.CustomAuthenticationSuccessHandler;
@@ -99,7 +99,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.Arrays;
 
 @Configuration
@@ -107,7 +106,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
-    // [삭제] CustomAuthenticationSuccessHandler는 더 이상 웹/API 분리에 방해만 됨
+    private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -118,32 +117,35 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**")) // API는 CSRF 비활성화
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
 
                 .authorizeHttpRequests(authz -> authz
-                        // [핵심] /api/** 경로는 컨트롤러에서 직접 인증을 처리하므로 일단 모두 허용!
-                        .requestMatchers("/api/**").permitAll()
-                        // 그 외 웹 페이지 경로 중 공개할 경로들
                         .requestMatchers(
-                                "/", "/css/**", "/js/**",
-                                "/login.html", "/login", // 웹 로그인 경로는 formLogin이 처리
-                                "/register.html", "/userReg",
-                                "/findIdForm", "/findId", "/findPwForm", "/findPw",
+                                "/", "/css/**", "/js/**", "/api/**",
+                                "/login", "/login.html", "/register.html", "/userReg",
+
+                                // VVV 수정된 부분 VVV: 비밀번호 재설정 페이지와 처리 URL을 허용 목록에 추가합니다.
+                                "/findIdForm", "/findId",
+                                "/findPwForm", "/findPw", "/resetPwForm", "/resetPw",
+
                                 "/share", "/board"
                         ).permitAll()
-                        // 위에 명시된 경로 외의 모든 요청은 인증을 요구
                         .anyRequest().authenticated()
                 )
-                // [수정] 웹 페이지 전용 로그인 설정 (단순화)
                 .formLogin(form -> form
                         .loginPage("/login.html")
                         .loginProcessingUrl("/login")
                         .usernameParameter("id")
-                        .defaultSuccessUrl("/", true) // 성공 시 무조건 메인으로
+                        .passwordParameter("password")
+                        .successHandler(customAuthenticationSuccessHandler)
+                        .failureUrl("/login.html?error=true")
+                        .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                 )
                 .userDetailsService(customUserDetailsService);
 
@@ -153,10 +155,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:8080"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
