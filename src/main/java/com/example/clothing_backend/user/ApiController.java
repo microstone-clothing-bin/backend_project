@@ -198,11 +198,8 @@ public class ApiController {
 
     // 즐겨찾기 추가
     @PostMapping("/wish/add")
-    public ResponseEntity<Map<String, String>> addWish(
-            @RequestParam String userId,
-            @RequestParam Long binId,
-            HttpSession session) {
-
+    public ResponseEntity<Map<String, String>> addWish(@PathVariable Long binId, HttpSession session) {
+        // [핵심] userId를 파라미터로 받지 않고, 안전하게 세션에서 직접 꺼냄!
         User loginUser = (User) session.getAttribute("loginUser");
         if (loginUser == null) {
             return ResponseEntity.status(401).body(Map.of("status", "error", "message", "로그인이 필요합니다."));
@@ -213,11 +210,7 @@ public class ApiController {
 
     // 즐겨찾기 삭제
     @DeleteMapping("/wish/remove")
-    public ResponseEntity<Map<String, String>> removeWish(
-            @RequestParam String userId,
-            @RequestParam Long binId,
-            HttpSession session) {
-
+    public ResponseEntity<Map<String, String>> removeWish(@PathVariable Long binId, HttpSession session) {
         User loginUser = (User) session.getAttribute("loginUser");
         if (loginUser == null) {
             return ResponseEntity.status(401).body(Map.of("status", "error", "message", "로그인이 필요합니다."));
@@ -228,9 +221,7 @@ public class ApiController {
 
     // 즐겨찾기 목록
     @GetMapping("/wish/list")
-    public ResponseEntity<List<Long>> getUserWishes(
-            @RequestParam String userId,
-            HttpSession session) {
+    public ResponseEntity<List<Long>> getUserWishes(HttpSession session) {
         User loginUser = (User) session.getAttribute("loginUser");
         if (loginUser == null) {
             return ResponseEntity.ok(List.of()); // 비로그인 시 빈 목록

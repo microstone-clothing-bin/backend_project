@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>내 즐겨찾기 목록</title>
@@ -35,22 +35,18 @@
     </div>
 </div>
 
-<script th:inline="javascript">
-    // CSRF 토큰 정보
-    const csrfToken = /*[[${_csrf.token}]]*/ '';
-    const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+<script>
+    // [삭제] CSRF는 /api/** 경로에 필요 없으므로 삭제
 
-    // 찜 해제 함수 (map.html에서 사용한 API를 재사용)
     function removeWish(binId) {
         if (!confirm('정말로 즐겨찾기를 해제하시겠습니까?')) {
             return;
         }
 
+        // [수정] credentials: 'include' 옵션 추가 및 불필요한 CSRF 헤더 삭제
         fetch(`/api/wish/remove/${binId}`, {
-            method: 'DELETE', // DELETE 메소드 사용
-            headers: {
-                [csrfHeader]: csrfToken
-            }
+            method: 'DELETE',
+            credentials: 'include' // <-- 바로 이 마법의 한 줄! "출입증(쿠키) 챙겨가!"
         })
             .then(res => {
                 if (res.status === 401) {
@@ -59,19 +55,20 @@
                     return Promise.reject('로그인 필요');
                 }
                 if (!res.ok) {
-                    return res.text().then(text => Promise.reject(text || '해제 실패'));
+                    // [수정] 에러 응답도 JSON으로 처리
+                    return res.json().then(err => Promise.reject(err.message || '해제 실패'));
                 }
-                return res.text();
+                // [수정] 성공 응답도 JSON으로 처리
+                return res.json();
             })
-            .then(() => {
-                alert('즐겨찾기가 해제되었습니다.');
-                // 성공 시 페이지를 새로고침하여 목록 갱신
+            .then(data => {
+                alert(data.message); // ApiController가 보내준 성공 메시지 출력
                 window.location.reload();
             })
             .catch(err => {
                 if (err !== '로그인 필요') {
                     console.error("Remove Wish Error:", err);
-                    alert('해제 중 오류가 발생했습니다.');
+                    alert('해제 중 오류가 발생했습니다: ' + err);
                 }
             });
     }
