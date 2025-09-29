@@ -363,26 +363,44 @@ public class ApiController {
     // 즐겨찾기 추가
     @PostMapping("/wish/add")
     public ResponseEntity<Map<String, String>> addWish(
-            @RequestParam Long userId,
+            @RequestParam String userId,
             @RequestParam Long binId) {
-        wishService.addWish(userId, binId);
+
+        User user = userService.getUser(userId);
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("status", "error", "message", "사용자를 찾을 수 없습니다."));
+        }
+
+        wishService.addWish(user.getUserId(), binId);  // 내부적으로 PK 사용
         return ResponseEntity.ok(Map.of("status", "success", "message", "즐겨찾기가 추가되었습니다."));
     }
 
     // 즐겨찾기 삭제
     @DeleteMapping("/wish/remove")
     public ResponseEntity<Map<String, String>> removeWish(
-            @RequestParam Long userId,
+            @RequestParam String userId,
             @RequestParam Long binId) {
-        wishService.removeWish(userId, binId);
+
+        User user = userService.getUser(userId);
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("status", "error", "message", "사용자를 찾을 수 없습니다."));
+        }
+
+        wishService.removeWish(user.getUserId(), binId);
         return ResponseEntity.ok(Map.of("status", "success", "message", "즐겨찾기가 해제되었습니다."));
     }
 
     // 즐겨찾기 목록
     @GetMapping("/wish/list")
-    public ResponseEntity<List<Long>> getUserWishes(
-            @RequestParam Long userId) {
-        List<Long> userWishes = wishService.getUserWishes(userId).stream()
+    public ResponseEntity<List<Long>> getUserWishes(@RequestParam String userId) {
+        User user = userService.getUser(userId);
+        if (user == null) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        List<Long> userWishes = wishService.getUserWishes(user.getUserId()).stream()
                 .map(Wish::getBinId)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(userWishes);
