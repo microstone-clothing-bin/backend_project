@@ -3,13 +3,10 @@
 <head>
     <meta charset="utf-8">
     <title>의류 수거함 지도</title>
-    <meta name="_csrf" th:content="${_csrf.token}"/>
-    <meta name="_csrf_header" th:content="${_csrf.headerName}">
 
     <script th:src="|https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapsClientId}&callback=initMap|"></script>
     <script th:src="@{/js/markerclustering.js}" defer></script>
 
-<!--    디자이너님과 협의 X 임시용, 협의 해야함 !-->
     <style>
         html, body { margin: 0; padding: 0; height: 100%; width: 100%; display: flex; flex-direction: column; }
         #map-container { flex-grow: 1; position: relative; }
@@ -35,12 +32,33 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             cursor: pointer;
         }
+        /* 내 위치로 돌아가기 버튼 스타일 */
+        #recenter-btn {
+            position: absolute;
+            bottom: 20px; /* 좌측 하단 위치 */
+            left: 20px;
+            z-index: 100;
+            padding: 10px;
+            font-size: 20px;
+            background-color: white;
+            color: #6c5ce7; /* 아이콘 색상 */
+            border: 2px solid #6c5ce7;
+            border-radius: 50%; /* 원형 버튼 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
 
         /* InfoWindow 내부 스타일 */
         .iw-inner {
             padding: 10px;
             width: 300px;
-            position: relative; /* 자식 요소 절대 위치 지정을 위해 추가 */
+            position: relative;
         }
         .iw-inner h4 { margin-top: 0; }
         .post-list { max-height: 150px; overflow-y: auto; margin: 10px 0; }
@@ -53,18 +71,16 @@
         .iw-wish-btn {
             position: absolute;
             top: 5px;
-            right: 5px; /* InfoWindow 우측 상단으로 이동 */
+            right: 5px;
             font-size: 24px;
             cursor: pointer;
             border: none;
             background: none;
             line-height: 1;
         }
-        /* 즐겨찾기 비활성화 (회색) */
         .iw-wish-btn:not(.active) {
             color: gray;
         }
-        /* 즐겨찾기 활성화 (노란색) */
         .iw-wish-btn.active {
             color: gold;
         }
@@ -76,6 +92,7 @@
 <div id="map-container">
     <div id="map"></div>
     <button id="research-btn">이 위치에서 다시 검색</button>
+    <button id="recenter-btn" title="내 위치로 이동">📍</button>
 </div>
 
 <script>
@@ -100,13 +117,15 @@
         // '여기서 다시 검색' 버튼 클릭 시 마커 업데이트
         document.getElementById('research-btn').addEventListener('click', updateMarkers);
 
+        // '내 위치로 이동' 버튼 클릭 시 함수 연결
+        document.getElementById('recenter-btn').addEventListener('click', recenterToMyLocation);
+
         // 지도 클릭 시 열린 InfoWindow 닫기
         naver.maps.Event.addListener(map, 'click', () => {
             if (selectedInfoWindow) {
                 selectedInfoWindow.close();
                 selectedInfoWindow = null;
             }
-            // [수정] 지도 클릭 시 전역 currentBinId 초기화
             currentBinId = null;
         });
 
@@ -115,85 +134,96 @@
         updateMarkers(); // 최초 로딩 시 한 번 마커 로딩
     }
 
+    function recenterToMyLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const center = new naver.maps.LatLng(position.coords.latitude, position.coords.longitude);
+
+                    // 지도를 현재 위치로 이동
+                    map.setCenter(center);
+                    // 줌 레벨을 적절히 확대 (ex): 16)
+                    map.setZoom(16, true);
+
+                },
+                (error) => {
+                    console.error("Geolocation Error:", error);
+                    let message = "사용자 위치를 찾을 수 없습니다. 위치 권한을 확인해주세요.";
+                    if (error.code === 1) {
+                        message = "위치 정보 사용 권한이 거부되었습니다. 브라우저 설정을 확인해주세요.";
+                    }
+                    alert(message);
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            alert("이 브라우저는 위치 정보(Geolocation)를 지원하지 않아 내 위치를 찾을 수 없습니다.");
+        }
+    }
+
+
     // 유저의 현재 찜 목록을 가져와 상태 업데이트
     function fetchUserWishes() {
-        fetch('/api/wish/list')
-            .then(res => {
-                if(res.status === 401) return []; // 비로그인 시 빈 목록
-                return res.json();
-            })
+        fetch('/api/wish/list',{
+            credentials: 'include'
+        })
+            .then(res => res.json())
             .then(binIds => {
                 userWishes = new Set(binIds);
-                // 마커 로드 후에도 상태를 확인할 수 있도록 함
             })
             .catch(err => console.error('즐겨찾기 목록 로딩 실패:', err));
     }
 
-    // 찜 추가/제거 로직 (Info Window 버튼 클릭 시 호출)
-    function toggleWish(binId) { // 인자로 binId를 받도록 변경
+    // 찜 추가/제거 로직
+    function toggleWish(binId) {
         const isWished = userWishes.has(binId);
-        // 찜 상태면 DELETE(제거), 아니면 POST(추가)
         const method = isWished ? 'DELETE' : 'POST';
         const apiUrl = `/api/wish/${isWished ? 'remove' : 'add'}/${binId}`;
 
-        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-
         fetch(apiUrl, {
             method: method,
-            headers: { [csrfHeader]: csrfToken }
+            credentials: 'include'
         })
             .then(res => {
                 if (res.status === 401) {
-                    // 리뷰 기능과 동일한 로그인 체크 로직
                     alert('즐겨찾기 기능을 이용하려면 로그인이 필요합니다.');
                     window.location.href = '/login.html';
                     return Promise.reject('로그인 필요');
                 }
-                if (!res.ok) {
-                    return res.text().then(text => Promise.reject(text || '처리 실패'));
-                }
-                return res.text();
+                if (!res.ok) return res.json().then(err => Promise.reject(err.message || '처리 실패'));
+                return res.json();
             })
-            .then(() => {
-                // 성공 시 Set 업데이트 및 UI 갱신
+            .then(data => {
+                alert(data.message);
                 const wishBtn = document.getElementById(`iw-wish-btn-${binId}`);
-
                 if (isWished) {
                     userWishes.delete(binId);
-                    alert('즐겨찾기가 해제되었습니다.');
                     if (wishBtn) {
                         wishBtn.classList.remove('active');
-                        wishBtn.textContent = '☆'; // 회색 별
+                        wishBtn.textContent = '☆';
                     }
                 } else {
                     userWishes.add(binId);
-                    alert('즐겨찾기가 추가되었습니다.');
                     if (wishBtn) {
                         wishBtn.classList.add('active');
-                        wishBtn.textContent = '★'; // 노란색 별
+                        wishBtn.textContent = '★';
                     }
                 }
-                // 찜 목록이 변경되었으므로, 다음 마커 클릭 시 최신 상태를 반영하도록 userWishes를 갱신합니다. (이미 위에서 갱신됨)
             })
             .catch(err => {
-                if (err !== '로그인 필요') {
-                    console.error("Wish Error:", err);
-                    alert(err);
-                }
+                if (err !== '로그인 필요') console.error("Wish Error:", err);
             });
     }
-
 
     // 마커 클러스터러 생성
     function makeClusterer() {
         return new MarkerClustering({
-            minClusterSize: 2, // 최소 2개 이상이면 클러스터링
-            maxZoom: 16,       // 이 zoom 이상이면 클러스터링 해제
+            minClusterSize: 2,
+            maxZoom: 16,
             map: map,
             markers: markers,
             disableClickZoom: false,
-            gridSize: 120,     // 클러스터 영역 크기
+            gridSize: 120,
             icons: [{ content: `<div class="cluster"></div>`, size: new naver.maps.Size(40, 40), anchor: new naver.maps.Point(20, 20) }],
             stylingFunction: function (clusterMarker, count) {
                 const clusterDiv = clusterMarker.getElement().querySelector('div');
@@ -213,7 +243,7 @@
         });
     }
 
-    // 마커 업데이트
+    // 마커 업데이트 (기존 코드 유지)
     function updateMarkers() {
         const bounds = map.getBounds();
         const sw = bounds.getSW();
@@ -224,78 +254,42 @@
             .then(res => res.ok ? res.json() : Promise.reject('서버 응답 오류'))
             .then(data => {
 
-                // 기존 마커와 클러스터를 지도에서 제거
                 markers.forEach(m => m.setMap(null));
                 if (clusterer) {
                     clusterer.setMap(null);
                 }
                 markers = [];
 
-                // 서버에서 받아온 데이터로 마커 생성
                 markers = data.map(bin => {
                     const marker = new naver.maps.Marker({
                         position: new naver.maps.LatLng(bin.latitude, bin.longitude)
                     });
 
-                    // 마커 클릭 시 API 호출, 리뷰 동적 로드
                     naver.maps.Event.addListener(marker, 'click', () => {
                         if (selectedInfoWindow) selectedInfoWindow.close();
 
-                        // 전역 currentBinId 저장
                         currentBinId = bin.id;
 
-                        // 해당 마커의 게시글 목록을 API로 요청
-                        fetch(`/api/markers/${bin.id}/posts`)
+                        fetch(`/api/markers/${bin.id}/posts`, { credentials: 'include' })
                             .then(res => res.json())
                             .then(posts => {
-                                // 게시글 목록 HTML 생성
                                 let postHtml = posts.map(post =>
-                                    `<div class="post-item">
-                                        <strong>${post.authorNickname}</strong>: ${post.content}
-                                        ${post.imageBase64 ? `<br><img src="data:image/jpeg;base64,${post.imageBase64}" style="max-width:100%;"/>` : ''}
-                                    </div>`
+                                    `<div class="post-item"><strong>${post.authorNickname}</strong>: ${post.content}${post.imageBase64 ? `<br><img src="data:image/jpeg;base64,${post.imageBase64}" style="max-width:100%;"/>` : ''}</div>`
                                 ).join('');
                                 if(posts.length === 0) postHtml = '<p>아직 등록된 리뷰가 없습니다.</p>';
 
-                                // 즐겨찾기 버튼 HTML 생성
                                 const isWished = userWishes.has(bin.id);
                                 const wishClass = isWished ? 'active' : '';
-                                const wishText = isWished ? '★' : '☆'; // 노란색 별 / 회색 별
-                                const wishBtnHtml =
-                                    `<button id="iw-wish-btn-${bin.id}" class="iw-wish-btn ${wishClass}"
-                                             onclick="toggleWish(${bin.id})">
-                                        ${wishText}
-                                    </button>`;
+                                const wishText = isWished ? '★' : '☆';
+                                const wishBtnHtml = `<button id="iw-wish-btn-${bin.id}" class="iw-wish-btn ${wishClass}" onclick="toggleWish(${bin.id})">${wishText}</button>`;
 
+                                const formHtml = `<div class="post-form"><hr><h5>리뷰 남기기</h5><form id="post-form-${bin.id}"><textarea name="content" rows="3" placeholder="리뷰를 남겨주세요..."></textarea><br><input type="file" name="image" accept="image/*"><br><button type="button" onclick="submitPost(${bin.id})">등록</button></form></div>`;
 
-                                // 새 게시글 작성 폼 HTML 생성
-                                const formHtml =
-                                    `<div class="post-form">
-                                        <hr><h5>리뷰 남기기</h5>
-                                        <form id="post-form-${bin.id}">
-                                            <textarea name="content" rows="3" placeholder="리뷰를 남겨주세요..."></textarea><br>
-                                            <input type="file" name="image" accept="image/*"><br>
-                                            <button type="button" onclick="submitPost(${bin.id})">등록</button>
-                                        </form>
-                                    </div>`
-                                ;
-                                // InfoWindow에 들어갈 전체 HTML 컨텐츠 조립
-                                const infoWindowContent = `<div class="iw-inner">
-                                                               ${wishBtnHtml}
-                                                               <h4>${bin.roadAddress || bin.landLotAddress}</h4>
-                                                               <div class="post-list">${postHtml}</div>
-                                                               ${formHtml}
-                                                           </div>`;
+                                const infoWindowContent = `<div class="iw-inner">${wishBtnHtml}<h4>${bin.roadAddress || bin.landLotAddress}</h4><div class="post-list">${postHtml}</div>${formHtml}</div>`;
 
-                                // InfoWindow 생성 및 열기
                                 const infoWindow = new naver.maps.InfoWindow({ content: infoWindowContent, maxWidth: 350 });
                                 infoWindow.open(map, marker);
                                 selectedInfoWindow = infoWindow;
-
-                                // InfoWindow가 닫힐 때 전역 currentBinId 초기화
-                                naver.maps.Event.addListener(infoWindow, 'close', () => {
-                                    currentBinId = null;
-                                });
                             });
                     });
                     return marker;
@@ -305,16 +299,14 @@
             .catch(err => console.error('마커 로딩 중 오류 발생:', err));
     }
 
-    // 비회원 리뷰 게시글 못올림 함수
+    // 비회원 리뷰 게시글 못올림 함수 (기존 코드 유지)
     function submitPost(binId) {
         const form = document.getElementById(`post-form-${binId}`);
         const formData = new FormData(form);
-        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
 
         fetch(`/api/markers/${binId}/posts`, {
             method: 'POST',
-            headers: { [csrfHeader]: csrfToken },
+            credentials: 'include',
             body: formData
         })
             .then(res => {
@@ -323,21 +315,23 @@
                     window.location.href = '/login.html';
                     return Promise.reject('로그인 필요');
                 }
-                // res.ok (200-299)가 아닐 경우, 서버의 에러 메시지를 포함하여 실패 처리
-                if (!res.ok) {
-                    return res.text().then(text => Promise.reject(text || '리뷰 등록에 실패했습니다.'));
-                }
-                return res.text();
+                if (!res.ok) return res.json().then(err => Promise.reject(err.message || '리뷰 등록 실패'));
+                return res.json();
             })
-            .then(result => {
-                alert('리뷰가 등록되었습니다!');
-                if (selectedInfoWindow) selectedInfoWindow.close();
+            .then(data => {
+                alert(data.message);
+                if (selectedInfoWindow) {
+                    // 정보창을 닫았다가 다시 여는 방식으로 리뷰 목록을 새로고침
+                    const markerPosition = selectedInfoWindow.getPosition();
+                    selectedInfoWindow.close();
+                    const marker = markers.find(m => m.getPosition().equals(markerPosition));
+                    if (marker) {
+                        naver.maps.Event.trigger(marker, 'click');
+                    }
+                }
             })
             .catch(err => {
-                if (err !== '로그인 필요') {
-                    console.error("Error:", err);
-                    alert(err); // 서버가 보낸 에러 메시지를 그대로 표시
-                }
+                if (err !== '로그인 필요') console.error("Error:", err);
             });
     }
 
