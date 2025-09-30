@@ -19,7 +19,7 @@
                 <a th:href="@{/register.html}">회원가입</a>
             </div>
             <div sec:authorize="isAuthenticated()">
-                <span th:text="|${#authentication.principal.nickname}님|"></span>
+                <span th:text="|${loginUser.nickname}님|"></span>
                 <a th:href="@{/wish.html}">즐겨찾기</a>
                 <a th:href="@{/mypage}">마이페이지</a>
                 <form th:action="@{/logout}" method="post" style="display: inline;">
@@ -29,5 +29,32 @@
             </div>
         </div>
     </nav>
+
+    <script>
+        window.addEventListener('focus', function() {
+            fetch('/api/user/status', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (typeof window.isUserLoggedIn === 'undefined') {
+                        window.isUserLoggedIn = data.loggedIn;
+                    }
+
+                    if (window.isUserLoggedIn !== data.loggedIn) {
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('로그인 상태 확인 중 에러 발생:', error);
+                });
+        });
+    </script>
 </header>
 </html>

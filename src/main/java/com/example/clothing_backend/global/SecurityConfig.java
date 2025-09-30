@@ -1,91 +1,3 @@
-// 보안 설정 (건들지 말기)
-
-//package com.example.clothing_backend.global;
-//
-//import com.example.clothing_backend.global.CustomAuthenticationSuccessHandler;
-//import com.example.clothing_backend.user.CustomUserDetailsService;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-//import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-//import org.springframework.security.crypto.password.PasswordEncoder;
-//import org.springframework.security.web.SecurityFilterChain;
-//import org.springframework.web.cors.CorsConfiguration;
-//import org.springframework.web.cors.CorsConfigurationSource;
-//import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-//import java.util.Arrays;
-//
-//@Configuration
-//@RequiredArgsConstructor
-//public class SecurityConfig {
-//
-//    private final CustomUserDetailsService customUserDetailsService;
-//    private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
-//
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder();
-//    }
-//
-//    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//        http
-//                // 전역 CORS 설정 적용
-//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-//
-//                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
-//
-//                .authorizeHttpRequests(authz -> authz
-//                        .requestMatchers(
-//                                "/", "/css/**", "/js/**", "/api/**",
-//                                "/login", "/login.html", "/register.html", "/userReg",
-//                                "/findIdForm", "/findId", "/findPwForm", "/findPw",
-//                                "/share", "/board"
-//                        ).permitAll()
-//                        .anyRequest().authenticated()
-//                )
-//                .formLogin(form -> form
-//                        .loginPage("/login.html")
-//                        .loginProcessingUrl("/login")
-//                        .usernameParameter("id")
-//                        .passwordParameter("password")
-//                        .successHandler(customAuthenticationSuccessHandler)
-//                        .failureUrl("/login.html?error=true")
-//                        .permitAll()
-//                )
-//                .logout(logout -> logout
-//                        .logoutUrl("/logout")
-//                        .logoutSuccessUrl("/")
-//                        .invalidateHttpSession(true)
-//                        .deleteCookies("JSESSIONID")
-//                )
-//                .userDetailsService(customUserDetailsService);
-//
-//        return http.build();
-//    }
-//
-//    // 전역 CORS 설정 Bean 생성
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration configuration = new CorsConfiguration();
-//
-//        // 프론트엔드 서버 주소(http://localhost:5173)를 허용
-//        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-//        // 모든 종류의 HTTP 메소드(GET, POST 등)를 허용
-//        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//        // 모든 종류의 HTTP 헤더를 허용
-//        configuration.setAllowedHeaders(Arrays.asList("*"));
-//        // 쿠키 등 자격 증명 정보를 함께 보내는 것을 허용
-//        configuration.setAllowCredentials(true);
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        // 모든 URL 경로("/**")에 대해 위에서 만든 CORS 설정을 적용
-//        source.registerCorsConfiguration("/**", configuration);
-//        return source;
-//    }
-//}
-
 package com.example.clothing_backend.global;
 
 import com.example.clothing_backend.user.CustomUserDetailsService;
@@ -117,24 +29,33 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**")) // CSRF 보호 예외 처리 (API 개발 시)
 
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
-                                "/", "/css/**", "/js/**", "/api/**",
-                                "/login", "/login.html", "/register.html", "/userReg",
+                                // 정적 자원
+                                "/css/**", "/js/**", "/images/**",
 
-                                // VVV 수정된 부분 VVV: 비밀번호 재설정 페이지와 처리 URL을 허용 목록에 추가합니다.
-                                "/findIdForm", "/findId",
-                                "/findPwForm", "/findPw", "/resetPwForm", "/resetPw",
+                                // 인증 없이 접근 가능한 페이지
+                                "/", "/login", "/login.html", "/register.html", "/userReg",
+                                "/findIdForm", "/findId", "/findPwForm", "/findPw", "/resetPwForm", "/resetPw",
+                                "/share", "/board",
 
-                                "/share", "/board"
+                                // 인증 없이 호출 가능한 API
+                                "/api/user/register", // <-- 이 줄을 추가해주세요!
+                                "/api/user/check-id", "/api/user/check-nickname", "/api/user/check-email",
+                                "/api/markers",
+                                "/api/wish/list",
+                                "/api/clothing-bins", // <-- '.'이 오타인 것 같아 수정했습니다.
+                                "/api/clothing-bins/in-bounds",
+                                "/api/markers/*/posts"
                         ).permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login.html")
-                        .loginProcessingUrl("/login")
+                        .loginProcessingUrl("/api/user/login")
                         .usernameParameter("id")
                         .passwordParameter("password")
                         .successHandler(customAuthenticationSuccessHandler)

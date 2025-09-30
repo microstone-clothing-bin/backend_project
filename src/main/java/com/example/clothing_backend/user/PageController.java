@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -32,8 +33,17 @@ public class PageController {
     // --- 기본 페이지 ---
     // (기존 코드와 동일)
     @GetMapping("/")
-    public String home(Model model) {
+    public String home(Model model, HttpSession session) { // HttpSession 파라미터 추가
         model.addAttribute("naverMapsClientId", naverMapsClientId);
+
+        // 세션에서 로그인한 사용자 정보를 가져옵니다.
+        User loginUser = (User) session.getAttribute("loginUser");
+
+        // 만약 로그인한 상태라면, 모델에 사용자 정보를 추가합니다.
+        if (loginUser != null) {
+            model.addAttribute("loginUser", loginUser);
+        }
+
         return "index";
     }
     // ... (register, login, findId, findPw 등 폼 반환 메소드들은 그대로)
@@ -214,10 +224,18 @@ public class PageController {
     @GetMapping("/writeform")
     public String writeForm(HttpSession session, Model model) {
         User loginUser = (User) session.getAttribute("loginUser");
-        if (loginUser == null) return "redirect:/login.html";
+        if (loginUser == null) {
+            // 비로그인 상태이면 로그인 페이지로 보냅니다.
+            return "redirect:/login.html";
+        }
 
-        model.addAttribute("loginInfo", loginUser);
+        // 사용자 정보를 뷰에 전달 (작성자 표시용)
+        model.addAttribute("loginUser", loginUser);
+
+        // ★★★ 바로 이 코드가 가장 중요합니다! ★★★
+        // 지도 API를 사용하기 위한 Client ID를 모델에 추가
         model.addAttribute("naverMapsClientId", naverMapsClientId);
+
         return "writeform";
     }
 
